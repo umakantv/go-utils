@@ -2,8 +2,9 @@ package db
 
 import (
 	"fmt"
-	"go-utils/logger"
 	"time"
+
+	"github.com/umakantv/go-utils/logger"
 
 	"github.com/jmoiron/sqlx"
 )

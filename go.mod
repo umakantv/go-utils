@@ -1,4 +1,4 @@
-module go-utils
+module github.com/umakantv/go-utils
 
 go 1.18
 
