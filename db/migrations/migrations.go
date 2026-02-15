@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/umakantv/go-utils/logger"
 )
+
+const migrationFilePattern = `^\d{14}_[a-zA-Z0-9_]+\.sql$`
 
 // Migrate runs database migrations from the specified directory
 func Migrate(db *sql.DB, migrationsDir string) error {
@@ -52,9 +55,14 @@ func getMigrationFiles(dir string) ([]string, error) {
 		return nil, err
 	}
 
+	re := regexp.MustCompile(migrationFilePattern)
+
 	var migrations []string
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".sql") {
+			if !re.MatchString(file.Name()) {
+				return nil, fmt.Errorf("invalid migration file %s: must match format <UTC timestamp>_<name>.sql where timestamp is 14 digits and name uses alphanum+underscore", file.Name())
+			}
 			migrations = append(migrations, filepath.Join(dir, file.Name()))
 		}
 	}
@@ -65,10 +73,8 @@ func getMigrationFiles(dir string) ([]string, error) {
 }
 
 func runMigration(db *sql.DB, filePath string) error {
-	// Extract version from filename (e.g., "001_initial.sql" -> "001_initial")
 	version := strings.TrimSuffix(filepath.Base(filePath), ".sql")
 
-	// Check if migration already applied
 	var exists bool
 	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = ?)", version).Scan(&exists)
 	if err != nil {
@@ -80,22 +86,29 @@ func runMigration(db *sql.DB, filePath string) error {
 		return nil
 	}
 
-	// Read migration file
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
 
-	// Execute migration
 	logger.Info(fmt.Sprintf("Running migration: %s", version))
-	_, err = db.Exec(string(content))
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec(string(content))
 	if err != nil {
 		return err
 	}
 
-	// Record migration as applied
-	_, err = db.Exec("INSERT INTO schema_migrations (version) VALUES (?)", version)
+	_, err = tx.Exec("INSERT INTO schema_migrations (version) VALUES (?)", version)
 	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 

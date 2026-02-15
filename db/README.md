@@ -100,20 +100,51 @@ These can be adjusted by modifying the `GetDBConnection` function for your speci
 
 ## Migrations
 
-The migrations package provides database migration management with versioning and rollback prevention.
+The migrations package provides database migration management with versioning, rollback prevention, and enforced filename patterns for ordering.
 
 ### Migration Files
 
-Create SQL files in your migrations directory with the naming convention: `{version}_{description}.sql`
+All migration files must follow the exact format: `<UTC timestamp>_<migration_name_with_alphanum_and_underscore>.sql`
+where timestamp is 14 digits (e.g. YYYYMMDDHHMMSS from UTC time) to ensure sortable order.
+Invalid files cause immediate error before any migrations run.
 
 Examples:
 ```
-001_initial_schema.sql
-002_add_users_table.sql
-003_create_indexes.sql
+20230101120000_initial_schema.sql
+20230101120001_add_users_table.sql
+20230101120002_create_indexes.sql
 ```
 
-### Running Migrations
+### Creating Migrations
+
+Run from your project root (creates .sql file under your ./migrations dir; uses UTC timestamp prefix and validates format/name):
+```
+go run github.com/umakantv/go-utils/db/migrations/create-migration.go --name create_user_table --dir ./migrations
+```
+(If developing go-utils locally, use `go run db/migrations/create-migration.go ...` instead.)
+The script errors immediately for invalid names (e.g. spaces, special chars) or format violations; generated files go under the specified dir (with .sql extension).
+
+### CLI for Running Migrations
+
+For command-line migrations (reuses library logic to skip already-applied files based on schema_migrations table, validates filenames, etc.):
+Place a `.env` file in the current dir with DB config (keys match former flags):
+```
+DRIVER=sqlite3
+DB=./mydb.sqlite
+# Optional: HOST=localhost
+# PORT=3306
+# USER=root
+# PASSWORD=pass
+```
+
+Then:
+```
+# Example (run from project root)
+go run github.com/umakantv/go-utils/db/migrations/migrate.go --dir ./migrations
+```
+(For local go-utils dev: replace with `go run db/migrations/migrate.go ...`.) The --dir flag specifies where to find .sql files.
+
+### Running Migrations (in Go code)
 
 ```go
 import "github.com/umakantv/go-utils/db/migrations"
@@ -139,14 +170,16 @@ CREATE TABLE schema_migrations (
 ### Features
 
 - **Version Control**: Tracks applied migrations to prevent re-execution
-- **Ordered Execution**: Runs migrations in alphabetical order
+- **Ordered Execution**: Runs migrations in alphabetical order by UTC timestamp prefix
+- **Filename Validation**: Enforces `<timestamp>_<name>.sql` pattern; errors immediately on mismatch
+- **Transactions**: Each migration is wrapped in a DB transaction (rollback on failure)
 - **Error Handling**: Stops on first failure with detailed error messages
 - **Logging**: Logs migration progress and status
 - **Idempotent**: Safe to run multiple times
 
 ### Example Migration File
 
-`001_initial_schema.sql`:
+`20230101120000_initial_schema.sql`:
 ```sql
 -- Create users table
 CREATE TABLE users (
