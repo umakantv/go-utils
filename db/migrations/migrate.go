@@ -14,7 +14,7 @@ import (
 	"github.com/umakantv/go-utils/logger"
 )
 
-func main() {
+func RunMigrations() {
 	dirFlag := flag.String("dir", "", "Directory containing migration .sql files")
 	flag.Parse()
 
