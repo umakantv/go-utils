@@ -1,7 +1,6 @@
 package migrations
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,10 +9,7 @@ import (
 	"time"
 )
 
-func CreateMigration() {
-	nameFlag := flag.String("name", "", "Migration name (alphanum+underscore only)")
-	dirFlag := flag.String("dir", ".", "Target directory for the new .sql file (e.g. ./migrations)")
-	flag.Parse()
+func CreateMigration(nameFlag *string, dirFlag *string) {
 
 	if *nameFlag == "" {
 		fmt.Println("Usage: go run create-migration.go --name <name> [--dir <migrations-dir>]")
