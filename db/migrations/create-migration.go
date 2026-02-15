@@ -1,4 +1,4 @@
-package main
+package migrations
 
 import (
 	"flag"
@@ -10,9 +10,7 @@ import (
 	"time"
 )
 
-const migrationFilePattern = `^\d{14}_[a-zA-Z0-9_]+\.sql$`
-
-func main() {
+func CreateMigration() {
 	nameFlag := flag.String("name", "", "Migration name (alphanum+underscore only)")
 	dirFlag := flag.String("dir", ".", "Target directory for the new .sql file (e.g. ./migrations)")
 	flag.Parse()

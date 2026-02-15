@@ -1,4 +1,4 @@
-package main
+package migrations
 
 import (
 	"flag"
@@ -11,7 +11,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/umakantv/go-utils/db"
-	"github.com/umakantv/go-utils/db/migrations"
 	"github.com/umakantv/go-utils/logger"
 )
 
@@ -64,7 +63,7 @@ func main() {
 	sqlxDB := db.GetDBConnection(config)
 	defer sqlxDB.Close()
 
-	if err := migrations.Migrate(sqlxDB, *dirFlag); err != nil {
+	if err := Migrate(sqlxDB, *dirFlag); err != nil {
 		fmt.Printf("Migration failed: %v\n", err)
 		os.Exit(1)
 	}

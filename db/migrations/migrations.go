@@ -1,7 +1,6 @@
 package migrations
 
 import (
-	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -9,13 +8,15 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
+
 	"github.com/umakantv/go-utils/logger"
 )
 
 const migrationFilePattern = `^\d{14}_[a-zA-Z0-9_]+\.sql$`
 
 // Migrate runs database migrations from the specified directory
-func Migrate(db *sql.DB, migrationsDir string) error {
+func Migrate(db *sqlx.DB, migrationsDir string) error {
 	// Create migrations table if it doesn't exist
 	if err := createMigrationsTable(db); err != nil {
 		return fmt.Errorf("failed to create migrations table: %w", err)
@@ -38,7 +39,7 @@ func Migrate(db *sql.DB, migrationsDir string) error {
 	return nil
 }
 
-func createMigrationsTable(db *sql.DB) error {
+func createMigrationsTable(db *sqlx.DB) error {
 	query := `
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			version VARCHAR(255) PRIMARY KEY,
@@ -72,7 +73,7 @@ func getMigrationFiles(dir string) ([]string, error) {
 	return migrations, nil
 }
 
-func runMigration(db *sql.DB, filePath string) error {
+func runMigration(db *sqlx.DB, filePath string) error {
 	version := strings.TrimSuffix(filepath.Base(filePath), ".sql")
 
 	var exists bool
