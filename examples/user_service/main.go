@@ -2,17 +2,19 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"io/ioutil"
 	"log"
 	"net/http"
 
+	"user-service/handlers"
+
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/umakantv/go-utils/cache"
 	"github.com/umakantv/go-utils/db"
-	"github.com/umakantv/go-utils/examples/user_service/handlers"
 	"github.com/umakantv/go-utils/httpserver"
 	"github.com/umakantv/go-utils/logger"
+	"go.uber.org/zap"
 )
 
 // checkAuth implements authentication for the service
@@ -37,7 +39,7 @@ func checkAuth(r *http.Request) (bool, httpserver.RequestAuth) {
 	return false, httpserver.RequestAuth{}
 }
 
-func initializeDatabase() *sql.DB {
+func initializeDatabase() *sqlx.DB {
 	// Database configuration for SQLite
 	config := db.DatabaseConfig{
 		DRIVER: "sqlite3",
@@ -146,6 +148,6 @@ func main() {
 
 	// Start server
 	if err := server.Start(); err != nil {
-		logger.Error("Server failed to start", logger.Error(err))
+		logger.Error("Server failed to start", zap.Error(err))
 	}
 }
